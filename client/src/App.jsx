@@ -6,6 +6,7 @@ import Profile from "./pages/Profile";
 import LocomotiveScroll from 'locomotive-scroll';
 import Dispthreenav from "./pages/Dispthreenav";
 import Header from "./components/Header";
+import PrivateRoute from "./components/PrivateRoute";
 
 export default function App() {  
   const locomotiveScroll = new LocomotiveScroll();
@@ -16,7 +17,9 @@ export default function App() {
       <Route path="/" element={<Home />} />
     < Route path="/sign-up" element={<SignUp />} />
     <Route path="/sign-in" element={<SignIn />} /> 
-    <Route path="/profile" element={<Profile />} />
+    <Route element={<PrivateRoute />}>
+          <Route path='/profile' element={<Profile />} />
+        </Route>
     <Route path="/threenav" element={<Dispthreenav />} />
 
     
