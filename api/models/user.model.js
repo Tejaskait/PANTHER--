@@ -15,11 +15,7 @@ const userSchema = new mongoose.Schema(
         type: String,
         required: true, 
       },
-      imageUrl:{
-        type: String,
-        default: "https://img.icons8.com/color/48/000000/user-male-circle.png",
-        required: true,
-      }
+    
     }, 
     { timestamps: true }
   );
