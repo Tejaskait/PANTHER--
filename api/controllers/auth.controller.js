@@ -98,7 +98,7 @@ export const test = (req, res) => {
             Math.random().toString(36).slice(-4),
           email: req.body.email,
           password: hashedPassword,
-          avatar: req.body.photo,
+          avatar: req.body.avatar,
           isAdmin, // Set admin flag
         });
   
@@ -120,3 +120,13 @@ export const test = (req, res) => {
     }
   };
   
+
+  
+  export const signOut = async (req, res, next) => {
+    try {
+      res.clearCookie('access_token');
+      res.status(200).json('User has been logged out!');
+    } catch (error) {
+      next(error);
+    }
+  };
