@@ -50,3 +50,44 @@ export const test = (req, res) => {
     }
   };
 
+
+  export const getAllUsers = async (req, res, next) => {
+    try {
+      const adminUser = req.user; // User info from the middleware
+      if (!adminUser.isAdmin) {
+        return next(errorHandler(403, 'Access denied'));
+      }
+  
+      console.log('Admin user authorized:', adminUser); // Debug log
+  
+      const users = await User.find({}, '-password'); // Fetch all users excluding passwords
+      console.log('Fetched users:', users); // Debug log
+  
+      res.status(200).json(users);
+    } catch (error) {
+      console.error('Error fetching users:', error); // Log the error
+      next(error);
+    }
+  };
+  
+  export const deleteAUser = async (req, res, next) => {
+    try {
+      const adminUser = req.user;
+      if (!adminUser.isAdmin) {
+        return next(errorHandler(403, 'Access denied'));
+      }
+  
+      const userId = req.params.id;
+      const deletedUser = await User.findByIdAndDelete(userId);
+  
+      if (!deletedUser) {
+        return next(errorHandler(404, 'User not found'));
+      }
+  
+      res.status(200).json({ message: 'User deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      next(error);
+    }
+  };
+  

@@ -7,6 +7,7 @@ import LocomotiveScroll from 'locomotive-scroll';
 import Dispthreenav from "./pages/Dispthreenav";
 import Header from "./components/Header";
 import PrivateRoute from "./components/PrivateRoute";
+import CSGO from "./pages/csgo";
 
 export default function App() {  
   const locomotiveScroll = new LocomotiveScroll();
@@ -21,6 +22,8 @@ export default function App() {
           <Route path='/profile' element={<Profile />} />
         </Route>
     <Route path="/threenav" element={<Dispthreenav />} />
+    <Route path='/csgo' element={<CSGO />} />
+    
 
     
   </Routes>
