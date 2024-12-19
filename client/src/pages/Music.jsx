@@ -1,7 +1,5 @@
-// src/pages/MusicPage.jsx
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import axios from '../utils/axios';
 
 const MusicPage = () => {
   const [songs, setSongs] = useState([]);
@@ -15,27 +13,24 @@ const MusicPage = () => {
     duration: '',
     file: null,
   });
-  const navigate = useNavigate();
 
-  // Fetch songs when the component mounts
+  // Fetch songs and check admin status
   useEffect(() => {
     const fetchSongs = async () => {
       try {
         const response = await axios.get('/api/songs/songs');
         setSongs(response.data.songs);
       } catch (error) {
-        console.error('Error fetching songs', error);
+        console.error('Error fetching songs', error.response?.data || error.message);
       }
     };
 
     const checkAdminStatus = async () => {
       try {
-        const response = await axios.get('/api/users/check-admin', { withCredentials: true });
-        if (response.data.isAdmin) {
-          setIsAdmin(true);
-        }
+        const response = await axios.get('/api/users/user-info');
+        setIsAdmin(response.data.isAdmin);
       } catch (error) {
-        console.error('Error checking admin status', error);
+        console.error('Error checking admin status', error.response?.data || error.message);
       }
     };
 
@@ -81,7 +76,7 @@ const MusicPage = () => {
       const response = await axios.get('/api/songs/songs');
       setSongs(response.data.songs);
     } catch (error) {
-      console.error('Error uploading song:', error);
+      console.error('Error uploading song:', error.response?.data || error.message);
       alert('Failed to upload song.');
     }
   };
