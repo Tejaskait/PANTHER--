@@ -58,10 +58,8 @@ export const test = (req, res) => {
         return next(errorHandler(403, 'Access denied'));
       }
   
-      console.log('Admin user authorized:', adminUser); // Debug log
   
       const users = await User.find({}, '-password'); // Fetch all users excluding passwords
-      console.log('Fetched users:', users); // Debug log
   
       res.status(200).json(users);
     } catch (error) {

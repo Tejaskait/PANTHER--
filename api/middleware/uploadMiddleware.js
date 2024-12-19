@@ -8,13 +8,19 @@ const uploadMiddleware = (folderName) => {
     cloudinary,
     params: async (req, file) => {
       const folderPath = folderName.trim();
-      const fileExtension = path.extname(file.originalname).substring(1);
+      const fileExtension = path.extname(file.originalname).substring(1).toLowerCase();
       const publicId = `${file.fieldname}-${Date.now()}`;
+
+      // Determine resource type based on file extension
+      const resourceType = ['mp3', 'wav', 'flac'].includes(fileExtension)
+        ? 'video' // Cloudinary treats audio files as 'video'
+        : 'image'; // Default to image for other file types
 
       return {
         folder: folderPath,
         public_id: publicId,
         format: fileExtension,
+        resource_type: resourceType,
       };
     },
   });
