@@ -1,144 +1,173 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import axios from '../utils/axios';
+import './MusicPage.css';
 
 const MusicPage = () => {
   const [songs, setSongs] = useState([]);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [showUploadForm, setShowUploadForm] = useState(false);
-  const [formData, setFormData] = useState({
-    title: '',
-    artist: '',
-    album: '',
-    genre: '',
-    duration: '',
-    file: null,
-  });
+  const [currentSongIndex, setCurrentSongIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [volume, setVolume] = useState(1);
+  const [autoPlay, setAutoPlay] = useState(true); // AutoPlay enabled by default
+  const audioRef = useRef(null);
 
-  // Fetch songs and check admin status
   useEffect(() => {
     const fetchSongs = async () => {
       try {
         const response = await axios.get('/api/songs/songs');
         setSongs(response.data.songs);
+
+        // Check for a song ID in the URL and set it as the current song
+        const urlParams = new URLSearchParams(window.location.search);
+        const songId = urlParams.get('song');
+        if (songId) {
+          const songIndex = response.data.songs.findIndex((s) => s._id === songId);
+          if (songIndex >= 0) {
+            setCurrentSongIndex(songIndex);
+          }
+        }
       } catch (error) {
         console.error('Error fetching songs', error.response?.data || error.message);
       }
     };
 
-    const checkAdminStatus = async () => {
-      try {
-        const response = await axios.get('/api/users/user-info');
-        setIsAdmin(response.data.isAdmin);
-      } catch (error) {
-        console.error('Error checking admin status', error.response?.data || error.message);
-      }
-    };
-
     fetchSongs();
-    checkAdminStatus();
   }, []);
 
-  // Handle form input changes
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prevState) => ({
-      ...prevState,
-      [name]: value,
-    }));
+  // Play or pause the current song
+  const togglePlayPause = () => {
+    if (isPlaying) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play();
+    }
+    setIsPlaying(!isPlaying);
   };
 
-  // Handle file upload
-  const handleFileChange = (e) => {
-    setFormData((prevState) => ({
-      ...prevState,
-      file: e.target.files[0],
-    }));
+  // Play the next song
+  const playNext = () => {
+    const nextIndex = (currentSongIndex + 1) % songs.length;
+    setCurrentSongIndex(nextIndex);
+    setIsPlaying(true);
+
+    // Temporarily show the "Pause" button during transition
+    setTimeout(() => {
+      if (audioRef.current) audioRef.current.play();
+    }, 100);
   };
 
-  // Submit song upload form
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  // Play the previous song
+  const playPrevious = () => {
+    const previousIndex = (currentSongIndex - 1 + songs.length) % songs.length;
+    setCurrentSongIndex(previousIndex);
+    setIsPlaying(true);
 
-    const form = new FormData();
-    for (const key in formData) {
-      form.append(key, formData[key]);
-    }
+    // Temporarily show the "Pause" button during transition
+    setTimeout(() => {
+      if (audioRef.current) audioRef.current.play();
+    }, 100);
+  };
 
-    try {
-      await axios.post('/api/songs/upload', form, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      setShowUploadForm(false); // Hide the form after successful upload
-      alert('Song uploaded successfully!');
-      // Re-fetch the songs list
-      const response = await axios.get('/api/songs/songs');
-      setSongs(response.data.songs);
-    } catch (error) {
-      console.error('Error uploading song:', error.response?.data || error.message);
-      alert('Failed to upload song.');
+  // Adjust volume
+  const handleVolumeChange = (e) => {
+    const newVolume = parseFloat(e.target.value);
+    setVolume(newVolume);
+    if (audioRef.current) audioRef.current.volume = newVolume;
+  };
+
+  // Toggle AutoPlay
+  const toggleAutoPlay = () => {
+    setAutoPlay(!autoPlay);
+  };
+
+  // Handle song end
+  const handleSongEnd = () => {
+    if (autoPlay) {
+      playNext();
+    } else {
+      setIsPlaying(false);
     }
+  };
+
+  const shareLink = () => {
+    const baseUrl = window.location.origin; // Get the current domain
+    const songId = songs[currentSongIndex]._id;
+    const link = `${baseUrl}/?song=${songId}`;
+    navigator.clipboard.writeText(link).then(() => {
+      alert('Song link copied to clipboard!');
+    });
   };
 
   return (
-    <div>
-      <h1>Music Page</h1>
+    <div className="music-page">
+      {/* Sidebar */}
+      <aside className="sidebar">
+        <h2>My Playlist</h2>
+        <ul>
+          {songs.map((song, index) => (
+            <li
+              key={song._id}
+              className={index === currentSongIndex ? 'active' : ''}
+              onClick={() => {
+                setCurrentSongIndex(index);
+                setIsPlaying(true);
+                setTimeout(() => {
+                  if (audioRef.current) audioRef.current.play();
+                }, 100);
+              }}
+            >
+              {song.title}
+            </li>
+          ))}
+        </ul>
+      </aside>
 
-      {/* Display songs */}
-      <div>
-        {songs.length > 0 ? (
-          songs.map((song) => (
-            <div key={song._id}>
-              <h2>{song.title}</h2>
-              <p>Artist: {song.artist}</p>
-              <p>Genre: {song.genre}</p>
-              <audio controls>
-                <source src={song.audioUrl} type="audio/mp3" />
-                Your browser does not support the audio element.
-              </audio>
+      {/* Main Content */}
+      <main className="main-content">
+        {songs.length > 0 && (
+          <div className="player">
+            <h1>{songs[currentSongIndex]?.title}</h1>
+            <h3>{songs[currentSongIndex]?.artist}</h3>
+            <audio
+              ref={audioRef}
+              src={songs[currentSongIndex]?.audioUrl}
+              onEnded={handleSongEnd}
+            />
+            <div className="controls">
+              <button onClick={playPrevious}>⏮️</button>
+              <button onClick={togglePlayPause}>
+                {isPlaying ? '⏸️' : '▶️'}
+              </button>
+              <button onClick={playNext}>⏭️</button>
             </div>
-          ))
-        ) : (
-          <p>No songs available.</p>
+            <div className="volume-control">
+              <label>
+                Volume:
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.1"
+                  value={volume}
+                  onChange={handleVolumeChange}
+                />
+              </label>
+            </div>
+            <div className="auto-play">
+              <label>
+                AutoPlay Next:
+                <input
+                  type="checkbox"
+                  checked={autoPlay}
+                  onChange={toggleAutoPlay}
+                />
+              </label>
+            </div>
+            <div className="share-link">
+              <button onClick={shareLink}>Share Link</button>
+            </div>
+          </div>
         )}
-      </div>
-
-      {/* Upload form button (visible only for admins) */}
-      {isAdmin && !showUploadForm && (
-        <button onClick={() => setShowUploadForm(true)}>Upload New Song</button>
-      )}
-
-      {/* Upload form */}
-      {isAdmin && showUploadForm && (
-        <form onSubmit={handleSubmit}>
-          <label>
-            Title:
-            <input type="text" name="title" value={formData.title} onChange={handleInputChange} required />
-          </label>
-          <label>
-            Artist:
-            <input type="text" name="artist" value={formData.artist} onChange={handleInputChange} required />
-          </label>
-          <label>
-            Album:
-            <input type="text" name="album" value={formData.album} onChange={handleInputChange} />
-          </label>
-          <label>
-            Genre:
-            <input type="text" name="genre" value={formData.genre} onChange={handleInputChange} />
-          </label>
-          <label>
-            Duration (seconds):
-            <input type="number" name="duration" value={formData.duration} onChange={handleInputChange} required />
-          </label>
-          <label>
-            File:
-            <input type="file" name="file" onChange={handleFileChange} required />
-          </label>
-          <button type="submit">Submit</button>
-        </form>
-      )}
+      </main>
     </div>
   );
 };

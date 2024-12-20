@@ -1,0 +1,103 @@
+.music-page {
+  display: flex;
+  height: 100vh;
+  font-family: Arial, sans-serif;
+  color: #fff;
+  background-color: #121212;
+}
+
+.sidebar {
+  width: 25%;
+  background-color: #1c1c1c;
+  padding: 20px;
+  border-right: 1px solid #282828;
+}
+
+.sidebar h2 {
+  font-size: 24px;
+  margin-bottom: 20px;
+}
+
+.sidebar ul {
+  list-style: none;
+  padding: 0;
+}
+
+.sidebar li {
+  padding: 10px;
+  margin: 5px 0;
+  cursor: pointer;
+  border-radius: 4px;
+  background-color: #1f1f1f;
+  transition: background-color 0.3s ease; 
+}
+
+.sidebar li:hover {
+  background-color: #282828;
+}
+
+.sidebar li.active {
+  background-color: #1db954;
+  color: #fff;
+}
+
+.main-content {
+  flex: 1;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.player h1 {
+  font-size: 32px;
+  margin: 10px 0;
+}
+
+.player h3 {
+  font-size: 18px;
+  color: #b3b3b3;
+}
+
+.controls {
+  margin-top: 20px;
+  display: flex;
+  gap: 20px;
+}
+
+.controls button {
+  font-size: 24px;
+  padding: 10px 20px;
+  background-color: #1db954;
+  border: none;
+  border-radius: 50px;
+  color: #fff;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.controls button:hover {
+  background-color: #1ed760;
+}
+
+.volume-control {
+  margin-top: 20px;
+}
+
+.volume-control input {
+  margin-left: 10px;
+}
+
+.auto-play {
+    margin-top: 20px;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+  }
+  
+  .auto-play input {
+    margin-left: 10px;
+    transform: scale(1.5);
+  }
+  
