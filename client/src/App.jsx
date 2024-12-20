@@ -14,7 +14,6 @@ export default function App() {
   const locomotiveScroll = new LocomotiveScroll();
 
   return <BrowserRouter>
-  <Header />
     <Routes> 
       <Route path="/" element={<Home />} />
     < Route path="/sign-up" element={<SignUp />} />
