@@ -9,6 +9,7 @@ import Header from "./components/Header";
 import PrivateRoute from "./components/PrivateRoute";
 import CSGO from "./pages/csgo";
 import MusicPage from "./pages/Music";
+import CSGO2 from "./pages/csgomap";
 
 export default function App() {  
   const locomotiveScroll = new LocomotiveScroll();
@@ -23,6 +24,7 @@ export default function App() {
         </Route>
     <Route path="/threenav" element={<Dispthreenav />} />
     <Route path='/csgo' element={<CSGO />} />
+    <Route path='/csgomap' element={<CSGO2 />} />
     <Route path='/music' element={<MusicPage />} />
     
 

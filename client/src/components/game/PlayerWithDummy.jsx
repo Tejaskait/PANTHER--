@@ -29,10 +29,10 @@ const PlayerWithDummy = ({ id, position, color }) => {
         <meshStandardMaterial color={color} />
       </mesh>
 
-      {/* Dummy Location */}
+      {/* Dummy Location */} 
       <mesh
         {...bind()}
-        position={dummyPosition}
+        position={dummyPosition} 
         ref={dummyRef}
         scale={[1, 1, 1]}
       >

@@ -13,7 +13,7 @@ router.get('/check-admin', verifyToken, async (req, res) => {
     try {
       const user = await User.findById(req.user.id);
       if (user && user.isAdmin) {
-        return res.json({ isAdmin: true });
+        return res.json({ isAdmin: true }); 
       }
       res.json({ isAdmin: false });
     } catch (error) {
