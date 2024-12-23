@@ -40,9 +40,10 @@ app.use('/api/auth', authRouter);
 app.use('/api/upload', uploadRouter);
 app.use('/api/songs', songRouter);
 
-const players= {
-   
-} 
+const players = {
+
+}
+const speed = 3
 // Socket.IO setup
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
@@ -51,18 +52,38 @@ io.on('connection', (socket) => {
     y: Math.random() * 500,
     radius: 10,
     color: `hsl(${360 * Math.random()},100%,50%)`,
-  }; 
+    sequenceNumber:0,
+  };
 
-io.emit('updatePlayers', players);
-  // Handle custom events
-socket.on('disconnect', (reason) =>{
-  console.log(reason);
-  delete players[socket.id];
   io.emit('updatePlayers', players);
-})
-  console.log(players);
-
+  // Handle custom events
+  socket.on('disconnect', (reason) => {
+    console.log(reason);
+    delete players[socket.id];
+    io.emit('updatePlayers', players);
+  })
+  socket.on('keydown', ({keycode,sequenceNumber}) => {
+    players[socket.id].sequenceNumber = sequenceNumber
+    switch (keycode) {
+      case "KeyW":
+        players[socket.id].y -= speed;
+        break;
+      case "KeyA":
+        players[socket.id].x -= speed;
+        break;
+      case "KeyS":
+        players[socket.id].y += speed;
+        break;
+      case "KeyD":
+        players[socket.id].x += speed;
+        break;
+    }
+  })
+  console.log(players[socket.id]);
 });
+setInterval(() => {
+  io.emit('updatePlayers', players);
+},15)
 
 // Error handler
 app.use((err, req, res, next) => {

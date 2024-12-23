@@ -1,7 +1,8 @@
 import React, { useRef, useEffect } from "react";
 import Player from "./classes/Player.jsx";
 import { io } from "socket.io-client";
-
+import { input } from "framer-motion/client";
+import gsap from "gsap";
 export default function GameScene() {
   const canvasRef = useRef(null);
   const scoreRef = useRef(null);
@@ -31,8 +32,28 @@ export default function GameScene() {
             backendPlayer.color
           );
         } else {
-          frontendPlayers[id].x = backendPlayer.x;
-          frontendPlayers[id].y = backendPlayer.y;
+          if (id === socket.id) {
+            frontendPlayers[id].x = backendPlayer.x;
+            frontendPlayers[id].y = backendPlayer.y;
+            const lastBackendInputIndex = playerInputs.findIndex((input) => {
+              return backendPlayers.sequenceNumber === input.sequenceNumber;
+            });
+            if (lastBackendInputIndex > -1) {
+              playerInputs.splice(0, lastBackendInputIndex + 1);
+              playerInputs.forEach((input) => {
+                frontendPlayers[id].x += input.dx;
+                frontendPlayers[id].y += input.dy;
+              });
+            }
+          } else {
+            
+            gsap.to(frontendPlayers[id], {
+              x: backendPlayer.x,
+              y: backendPlayer.y,
+              duration: 0.015,
+              ease: "power2.inOut",
+            });
+          }
         }
       }
       for (const id in frontendPlayers) {
@@ -42,7 +63,7 @@ export default function GameScene() {
       }
     });
 
-    // Handle player movement on click
+    /*  // Handle player movement on click
     window.addEventListener("click", (event) => {
       const rect = canvas.getBoundingClientRect();
       const clickX = (event.clientX - rect.left) * devicePixelRatio;
@@ -57,7 +78,7 @@ export default function GameScene() {
         // Notify the server of the position change
         socket.emit("movePlayer", { x: clickX, y: clickY });
       }
-    });
+    });*/
 
     // Animation loop
     let animationId;
@@ -73,6 +94,86 @@ export default function GameScene() {
     }
 
     animate();
+    const keys = {
+      w: {
+        pressed: false,
+      },
+      a: {
+        pressed: false,
+      },
+      s: {
+        pressed: false,
+      },
+      d: {
+        pressed: false,
+      },
+    };
+    const speed = 3;
+    const playerInputs = [];
+    let sequenceNumber = 0;
+    setInterval(() => {
+      if (keys.w.pressed) {
+        sequenceNumber++;
+        playerInputs.push({ sequenceNumber, dx: 0, dy: -speed });
+        frontendPlayers[socket.id].y -= speed;
+        socket.emit("keydown", { keycode: "KeyW", sequenceNumber });
+      }
+      if (keys.a.pressed) {
+        sequenceNumber++;
+        playerInputs.push({ sequenceNumber, dx: -speed, dy: 0 });
+        frontendPlayers[socket.id].x -= speed;
+        socket.emit("keydown", { keycode: "KeyA", sequenceNumber });
+      }
+      if (keys.s.pressed) {
+        sequenceNumber++;
+        playerInputs.push({ sequenceNumber, dx: 0, dy: speed });
+        frontendPlayers[socket.id].y += speed;
+        socket.emit("keydown", { keycode: "KeyS", sequenceNumber });
+      }
+      if (keys.d.pressed) {
+        sequenceNumber++;
+        playerInputs.push({ sequenceNumber, dx: speed, dy: 0 });
+        frontendPlayers[socket.id].x += speed;
+        socket.emit("keydown", { keycode: "KeyD", sequenceNumber });
+      }
+    }, 15);
+    window.addEventListener("keydown", (event) => {
+      if (!frontendPlayers[socket.id]) return;
+      switch (event.code) {
+        case "KeyW":
+          keys.w.pressed = true;
+
+          break;
+        case "KeyA":
+          keys.a.pressed = true;
+          break;
+        case "KeyS":
+          keys.s.pressed = true;
+          break;
+        case "KeyD":
+          keys.d.pressed = true;
+          break;
+      }
+    });
+
+    window.addEventListener("keyup", (event) => {
+      if (!frontendPlayers[socket.id]) return;
+      switch (event.code) {
+        case "KeyW":
+          keys.w.pressed = false;
+
+          break;
+        case "KeyA":
+          keys.a.pressed = false;
+          break;
+        case "KeyS":
+          keys.s.pressed = false;
+          break;
+        case "KeyD":
+          keys.d.pressed = false;
+          break;
+      }
+    });
 
     return () => {
       window.removeEventListener("click", () => {});
