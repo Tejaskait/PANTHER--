@@ -43,7 +43,10 @@ app.use('/api/songs', songRouter);
 const players = {
 
 }
+const backendProjectiles = {}
 const speed = 3
+const RADIUS = 10
+let projectileId = 0
 // Socket.IO setup
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
@@ -52,17 +55,46 @@ io.on('connection', (socket) => {
     y: Math.random() * 500,
     radius: 10,
     color: `hsl(${360 * Math.random()},100%,50%)`,
-    sequenceNumber:0,
+    sequenceNumber: 0,
   };
 
   io.emit('updatePlayers', players);
+
+  socket.on('initCanvas', ({ width, height, devicePixelRatio }) => {
+    players[socket.id].canvas = {
+      width,
+      height,
+
+    }
+    players[socket.id].radius = RADIUS
+
+    if (devicePixelRatio > 1) {
+      players[socket.id].radius = 2 * RADIUS
+
+    }
+  })
+
+  socket.on('shoot', ({ x, y, angle }) => {
+    projectileId++
+    const velocity = {
+      x: Math.cos(angle) * 5,
+      y: Math.sin(angle) * 5,
+    };
+    backendProjectiles[projectileId] = {
+      x,
+      y,
+      velocity,
+      playerId: socket.id,
+    }
+    console.log(backendProjectiles)
+  })
   // Handle custom events
   socket.on('disconnect', (reason) => {
     console.log(reason);
     delete players[socket.id];
     io.emit('updatePlayers', players);
   })
-  socket.on('keydown', ({keycode,sequenceNumber}) => {
+  socket.on('keydown', ({ keycode, sequenceNumber }) => {
     players[socket.id].sequenceNumber = sequenceNumber
     switch (keycode) {
       case "KeyW":
@@ -82,8 +114,52 @@ io.on('connection', (socket) => {
   console.log(players[socket.id]);
 });
 setInterval(() => {
+  for (const id in backendProjectiles) {
+    const projectile = backendProjectiles[id];
+    projectile.x += projectile.velocity.x;
+    projectile.y += projectile.velocity.y;
+
+    const PROJECTILE_RADIUS = 5;
+
+    // Check if the projectile is out of bounds
+    const playerCanvas = players[projectile.playerId]?.canvas;
+    if (
+      !playerCanvas || // If canvas doesn't exist, remove projectile
+      projectile.x - PROJECTILE_RADIUS >= playerCanvas.width ||
+      projectile.x + PROJECTILE_RADIUS <= 0 ||
+      projectile.y - PROJECTILE_RADIUS >= playerCanvas.height ||
+      projectile.y + PROJECTILE_RADIUS <= 0
+    ) {
+      delete backendProjectiles[id];
+      continue;
+    }
+
+    // Check for collisions with players
+    for (const playerId in players) {
+      const backendPlayer = players[playerId];
+
+      // Ensure the player exists before calculating distance
+      if (!backendPlayer) continue;
+
+      const DISTANCE = Math.hypot(
+        projectile.x - backendPlayer.x,
+        projectile.y - backendPlayer.y
+      );
+      if (DISTANCE < PROJECTILE_RADIUS + backendPlayer.radius && backendProjectiles[id].playerId !== playerId) {
+        delete backendProjectiles[id];
+        delete players[playerId];
+       
+        continue; 
+      }
+
+
+    }
+  }
+
+  io.emit('updateProjectiles', backendProjectiles);
   io.emit('updatePlayers', players);
-},15)
+}, 15);
+
 
 // Error handler
 app.use((err, req, res, next) => {

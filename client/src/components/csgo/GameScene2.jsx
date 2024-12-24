@@ -3,23 +3,65 @@ import Player from "./classes/Player.jsx";
 import { io } from "socket.io-client";
 import { input } from "framer-motion/client";
 import gsap from "gsap";
+import Projectile from "./classes/Projectile.jsx";
+import EventListeners from "./eventListeners.jsx";
 export default function GameScene() {
   const canvasRef = useRef(null);
   const scoreRef = useRef(null);
   const devicePixelRatio = window.devicePixelRatio || 2;
+  const frontendPlayers = {};
+   const frontendProjectiles = {};
+  const socket = io("http://localhost:3000", {
+    withCredentials: true,
+  });
+
+ 
 
   useEffect(() => {
     const canvas = canvasRef.current;
     const scoreElement = scoreRef.current;
     const context = canvas.getContext("2d");
-    const socket = io("http://localhost:3000", {
-      withCredentials: true,
-    });
+    
     canvas.width = window.innerWidth * devicePixelRatio;
     canvas.height = window.innerHeight * devicePixelRatio;
+socket.on('connect',() => {
+socket.emit('initCanvas', {
+  width: canvas.width,
+  height: canvas.height,
+  devicePixelRatio
+});
+})
+   socket.on("updateProjectiles", (backendProjectiles) => {
+  for (const id in backendProjectiles) {
+    const backendProjectile = backendProjectiles[id];
 
-    const frontendPlayers = {};
+    if (!frontendProjectiles[id]) {
+      // Check if the player exists in frontendPlayers
+      const player = frontendPlayers[backendProjectile.playerId];
+      
+      if (!player) {
+      
+        continue; // Skip creating projectile if player not found
+      }
 
+      frontendProjectiles[id] = new Projectile({
+        x: backendProjectile.x * devicePixelRatio, // Apply devicePixelRatio to ensure correct scale
+        y: backendProjectile.y * devicePixelRatio, // Apply devicePixelRatio to ensure correct scale
+        radius: 5,
+        color: player.color, // Now it's safe to access player.color
+        velocity: backendProjectile.velocity,
+      });
+    } else {
+      frontendProjectiles[id].x += backendProjectiles[id].velocity.x;
+      frontendProjectiles[id].y += backendProjectiles[id].velocity.y;
+    }
+  }
+  for (const frontendProjectileId in frontendProjectiles) {
+    if (!backendProjectiles[frontendProjectileId]) {
+      delete frontendProjectiles[frontendProjectileId];
+    }
+  }
+});
     // Listen for player updates from the server
     socket.on("updatePlayers", (backendPlayers) => {
       for (const id in backendPlayers) {
@@ -91,7 +133,19 @@ export default function GameScene() {
         const frontendPlayer = frontendPlayers[id];
         frontendPlayer.draw(context);
       }
+      for (const id in frontendProjectiles) {
+        const frontendProjectile = frontendProjectiles[id];
+        frontendProjectile.draw(context);
+      }
+    /*  for (let i = frontendProjectiles.length - 1; i >= 0; i--) {
+        const frontendProjectile = frontendProjectiles[i];
+        frontendProjectile.update();
+        frontendProjectile.draw(context); // Add this line to draw the projectile
+      }
+        */
     }
+      
+
 
     animate();
     const keys = {
@@ -186,7 +240,7 @@ export default function GameScene() {
     <div>
       <canvas
         ref={canvasRef}
-        style={{ display: "block", width: "100%", height: "100%" }}
+        style={{ width: "100%", height: "100%" }}
       ></canvas>
       <div
         ref={scoreRef}
@@ -200,6 +254,10 @@ export default function GameScene() {
       >
         Score: 0
       </div>
+      <EventListeners canvasRef={canvasRef} frontendProjectiles={frontendProjectiles}
+      frontendPlayers={frontendPlayers} // Pass this prop
+      socket={socket} />
+
     </div>
   );
 }
