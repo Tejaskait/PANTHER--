@@ -6,62 +6,78 @@ import gsap from "gsap";
 import Projectile from "./classes/Projectile.jsx";
 import EventListeners from "./eventListeners.jsx";
 export default function GameScene() {
+  
   const canvasRef = useRef(null);
   const scoreRef = useRef(null);
   const devicePixelRatio = window.devicePixelRatio || 2;
   const frontendPlayers = {};
-   const frontendProjectiles = {};
+  const frontendProjectiles = {};
   const socket = io("http://localhost:3000", {
     withCredentials: true,
   });
 
- 
-
   useEffect(() => {
+
+    
     const canvas = canvasRef.current;
     const scoreElement = scoreRef.current;
     const context = canvas.getContext("2d");
-    
+
     canvas.width = window.innerWidth * devicePixelRatio;
     canvas.height = window.innerHeight * devicePixelRatio;
-socket.on('connect',() => {
-socket.emit('initCanvas', {
-  width: canvas.width,
-  height: canvas.height,
-  devicePixelRatio
-});
-})
-   socket.on("updateProjectiles", (backendProjectiles) => {
-  for (const id in backendProjectiles) {
-    const backendProjectile = backendProjectiles[id];
-
-    if (!frontendProjectiles[id]) {
-      // Check if the player exists in frontendPlayers
-      const player = frontendPlayers[backendProjectile.playerId];
-      
-      if (!player) {
-      
-        continue; // Skip creating projectile if player not found
+    const playerUsernameForm = document.querySelector("#playerusername");
+    const handleFormSubmit = (event) => {
+      event.preventDefault();
+      playerUsernameForm.style.display = 'none'
+      const usernameInput = document.querySelector("#usernameinput");
+      if (usernameInput) {
+        const username = usernameInput.value.trim();
+        if (username) {
+          console.log("Submitted username:", username);
+        } else {
+          console.log("Please enter a username.");
+        }
+        socket.emit('initGame', {username,    width: canvas.width,
+          height: canvas.height,
+          devicePixelRatio,})
       }
+      
+    };
+    if (playerUsernameForm) {
+     
+      playerUsernameForm.addEventListener("submit", handleFormSubmit);
+    }
+   
+    socket.on("updateProjectiles", (backendProjectiles) => {
+      for (const id in backendProjectiles) {
+        const backendProjectile = backendProjectiles[id];
 
-      frontendProjectiles[id] = new Projectile({
-        x: backendProjectile.x * devicePixelRatio, // Apply devicePixelRatio to ensure correct scale
-        y: backendProjectile.y * devicePixelRatio, // Apply devicePixelRatio to ensure correct scale
-        radius: 5,
-        color: player.color, // Now it's safe to access player.color
-        velocity: backendProjectile.velocity,
-      });
-    } else {
-      frontendProjectiles[id].x += backendProjectiles[id].velocity.x;
-      frontendProjectiles[id].y += backendProjectiles[id].velocity.y;
-    }
-  }
-  for (const frontendProjectileId in frontendProjectiles) {
-    if (!backendProjectiles[frontendProjectileId]) {
-      delete frontendProjectiles[frontendProjectileId];
-    }
-  }
-});
+        if (!frontendProjectiles[id]) {
+          // Check if the player exists in frontendPlayers
+          const player = frontendPlayers[backendProjectile.playerId];
+
+          if (!player) {
+            continue; // Skip creating projectile if player not found
+          }
+
+          frontendProjectiles[id] = new Projectile({
+            x: backendProjectile.x * devicePixelRatio, // Apply devicePixelRatio to ensure correct scale
+            y: backendProjectile.y * devicePixelRatio, // Apply devicePixelRatio to ensure correct scale
+            radius: 5,
+            color: player.color, // Now it's safe to access player.color
+            velocity: backendProjectile.velocity,
+          });
+        } else {
+          frontendProjectiles[id].x += backendProjectiles[id].velocity.x;
+          frontendProjectiles[id].y += backendProjectiles[id].velocity.y;
+        }
+      }
+      for (const frontendProjectileId in frontendProjectiles) {
+        if (!backendProjectiles[frontendProjectileId]) {
+          delete frontendProjectiles[frontendProjectileId];
+        }
+      }
+    });
     // Listen for player updates from the server
     socket.on("updatePlayers", (backendPlayers) => {
       for (const id in backendPlayers) {
@@ -73,7 +89,27 @@ socket.emit('initCanvas', {
             10,
             backendPlayer.color
           );
+          document.querySelector(
+            "#playerLabel"
+          ).innerHTML += `<div data-id='${id}' data-score='${backendPlayer.score}'>${backendPlayer.username}: ${backendPlayer.score}</div>`;
         } else {
+          document.querySelector(
+            `div [data-id='${id}']`
+          ).innerHTML = ` ${backendPlayer.username}:${backendPlayer.score}`;
+          document
+            .querySelector(`div [data-id='${id}']`)
+            .setAttribute("data-score", backendPlayer.score);
+          const parentDiv = document.querySelector("#playerLabel");
+          const childDiv = Array.from(parentDiv.querySelectorAll("div"));
+          childDiv.sort((a, b) => {
+            const scoreA = Number(a.getAttribute("data-score"));
+            const scoreB = Number(b.getAttribute("data-score"));
+            return scoreB - scoreA;
+          });
+          childDiv.forEach(div => {
+            parentDiv.removeChild(div);
+            parentDiv.appendChild(div);
+          })
           if (id === socket.id) {
             frontendPlayers[id].x = backendPlayer.x;
             frontendPlayers[id].y = backendPlayer.y;
@@ -88,7 +124,6 @@ socket.emit('initCanvas', {
               });
             }
           } else {
-            
             gsap.to(frontendPlayers[id], {
               x: backendPlayer.x,
               y: backendPlayer.y,
@@ -100,6 +135,12 @@ socket.emit('initCanvas', {
       }
       for (const id in frontendPlayers) {
         if (!backendPlayers[id]) {
+          const divDelete = document.querySelector(`div [data-id='${id}']`);
+          divDelete.parentNode.removeChild(divDelete);
+          if(id === socket.id) {
+            playerUsernameForm.style.display = 'block';
+
+          }
           delete frontendPlayers[id];
         }
       }
@@ -137,15 +178,13 @@ socket.emit('initCanvas', {
         const frontendProjectile = frontendProjectiles[id];
         frontendProjectile.draw(context);
       }
-    /*  for (let i = frontendProjectiles.length - 1; i >= 0; i--) {
+      /*  for (let i = frontendProjectiles.length - 1; i >= 0; i--) {
         const frontendProjectile = frontendProjectiles[i];
         frontendProjectile.update();
         frontendProjectile.draw(context); // Add this line to draw the projectile
       }
         */
     }
-      
-
 
     animate();
     const keys = {
@@ -228,36 +267,93 @@ socket.emit('initCanvas', {
           break;
       }
     });
+  
+    
 
     return () => {
-      window.removeEventListener("click", () => {});
-      cancelAnimationFrame(animationId);
-      socket.disconnect();
+      if (playerUsernameForm) {
+        playerUsernameForm.removeEventListener("submit", handleFormSubmit);
+      }
     };
   }, []);
 
   return (
-    <div>
+    <div >
+      {/* Username Boilerplate */}
+      <form
+        id="playerusername"
+        style={{
+          position: "absolute",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          padding: "20px",
+          background: "rgba(255, 255, 255, 0.8)",
+          borderRadius: "8px",
+          zIndex: 10,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <input
+          id="usernameinput"
+          type="text"
+          placeholder="Enter username"
+          style={{
+            padding: "5px",
+            border: "1px solid #ccc",
+            borderRadius: "4px",
+            marginBottom: "10px",
+          }}
+        />
+        <button
+          type="submit"
+          style={{
+            padding: "5px 10px",
+            backgroundColor: "#007bff",
+            color: "white",
+            border: "none",
+            borderRadius: "4px",
+            cursor: "pointer",
+          }}
+        >
+          Submit
+        </button>
+      </form>
+
       <canvas
         ref={canvasRef}
         style={{ width: "100%", height: "100%" }}
       ></canvas>
       <div
         ref={scoreRef}
+        className="font-nmregular font-[1vw] mb-8px "
         style={{
           position: "absolute",
           top: 10,
           left: 10,
           color: "white",
-          fontSize: "20px",
+  
+          userSelect: "none",
+          background: "rgba(0,0,0,0.7)",
         }}
       >
-        Score: 0
+        Leaderboard
+        
+        <div id="playerLabel" ref={scoreRef}>
+          
+        </div>
       </div>
-      <EventListeners canvasRef={canvasRef} frontendProjectiles={frontendProjectiles}
-      frontendPlayers={frontendPlayers} // Pass this prop
-      socket={socket} />
-
+   
+      <EventListeners
+        canvasRef={canvasRef}
+        frontendProjectiles={frontendProjectiles}
+        frontendPlayers={frontendPlayers} // Pass this prop
+        socket={socket}
+      />
     </div>
   );
+  
 }

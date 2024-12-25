@@ -50,29 +50,10 @@ let projectileId = 0
 // Socket.IO setup
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
-  players[socket.id] = {
-    x: Math.random() * 500,
-    y: Math.random() * 500,
-    radius: 10,
-    color: `hsl(${360 * Math.random()},100%,50%)`,
-    sequenceNumber: 0,
-  };
-
+ 
   io.emit('updatePlayers', players);
 
-  socket.on('initCanvas', ({ width, height, devicePixelRatio }) => {
-    players[socket.id].canvas = {
-      width,
-      height,
 
-    }
-    players[socket.id].radius = RADIUS
-
-    if (devicePixelRatio > 1) {
-      players[socket.id].radius = 2 * RADIUS
-
-    }
-  })
 
   socket.on('shoot', ({ x, y, angle }) => {
     projectileId++
@@ -87,6 +68,30 @@ io.on('connection', (socket) => {
       playerId: socket.id,
     }
     console.log(backendProjectiles)
+  })
+  socket.on('initGame', ({username, width, height, devicePixelRatio }) => {
+    players[socket.id] = {
+      x: Math.random() * 1000,
+      y: Math.random() * 1000,
+      radius: 10,
+      color: `hsl(${360 * Math.random()},100%,50%)`,
+      sequenceNumber: 0,
+      score: 0,
+      username 
+    };
+    players[socket.id].canvas = {
+      width,
+      height,
+
+    }
+    players[socket.id].radius = RADIUS
+
+    if (devicePixelRatio > 1) {
+      players[socket.id].radius = 2 * RADIUS
+
+    }
+  
+console.log(username)
   })
   // Handle custom events
   socket.on('disconnect', (reason) => {
@@ -146,10 +151,14 @@ setInterval(() => {
         projectile.y - backendPlayer.y
       );
       if (DISTANCE < PROJECTILE_RADIUS + backendPlayer.radius && backendProjectiles[id].playerId !== playerId) {
+        if(players[backendProjectiles[id].playerId])
+        players[backendProjectiles[id].playerId].score++;
+
+        console.log(players[backendProjectiles[id].playerId])
         delete backendProjectiles[id];
         delete players[playerId];
-       
-        continue; 
+
+        continue;
       }
 
 
