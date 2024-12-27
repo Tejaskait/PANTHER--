@@ -5,10 +5,10 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { createServer } from 'http'; // Import for creating HTTP server
 import { Server } from 'socket.io'; // Import for Socket.IO
-import userRouter from './routes/user.route.js';
-import authRouter from './routes/auth.route.js';
-import uploadRouter from './routes/upload.route.js';
-import songRouter from './routes/song.route.js';
+import userRouter from './user 1/routes/user.route.js';
+import authRouter from './user 1/routes/auth.route.js';
+import uploadRouter from './user 1/routes/upload.route.js';
+import songRouter from './user 1/routes/song.route.js';
 
 dotenv.config();
 
